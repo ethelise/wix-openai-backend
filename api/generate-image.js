@@ -1,44 +1,68 @@
+let jobs = {}; // store jobId -> result
+
+import { v4 as uuidv4 } from 'uuid'; // unique job IDs
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  try {
+  if (req.method === 'POST') {
+    // Start job
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'No prompt provided' });
 
-    const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-image-1',
-        prompt: prompt,
-        output_format: 'b64_json',
-        quality: 'medium',
-        n: 1,
-        size: '256x256',
-      }),
-    });
+    const jobId = uuidv4();
+    // Mark job as pending
+    jobs[jobId] = { status: 'pending' };
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      return res.status(openaiResponse.status).json({ error: errorText });
-    }
+    // Start OpenAI call async (don’t await here)
+    (async () => {
+      try {
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        });
 
-    const data = await openaiResponse.json();
-    const base64Image = data.data?.[0]?.b64_json;
+        if (!openaiResponse.ok) {
+          jobs[jobId] = { status: 'error', error: await openaiResponse.text() };
+          return;
+        }
 
-    if (!base64Image) return res.status(500).json({ error: 'No image returned' });
+        const data = await openaiResponse.json();
+        const reply = data.choices?.[0]?.message?.content || 'No reply';
 
-    res.status(200).json({ imageBase64: base64Image });
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+        jobs[jobId] = { status: 'done', reply };
+      } catch (err) {
+        jobs[jobId] = { status: 'error', error: err.message };
+      }
+    })();
+
+    // Immediately respond with jobId
+    res.status(202).json({ jobId });
+  }
+  else if (req.method === 'GET') {
+    // Check job status: expect jobId as query param
+    const { jobId } = req.query;
+    if (!jobId) return res.status(400).json({ error: 'No jobId provided' });
+
+    const job = jobs[jobId];
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+
+    res.status(200).json(job);
+  }
+  else {
+    res.status(405).json({ error: 'Method Not Allowed' });
   }
 }
+
