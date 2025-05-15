@@ -4,7 +4,7 @@ function generateJobId() {
   return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -29,11 +29,11 @@ export default async function handler(req, res) {
             'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'gpt-image-1'
+            model: 'gpt-image-1',
             prompt: prompt,
             n: 1,
             size: '512x512',
-            output_format: 'b64_json',
+            output_format: 'jpeg', // corrected property name from output_format
             quality: 'low'
           }),
         });
@@ -90,4 +90,4 @@ export default async function handler(req, res) {
   else {
     res.status(405).json({ error: 'Method Not Allowed' });
   }
-}
+};
