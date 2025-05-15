@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
         const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/djsc8h3ra/image/upload`, {
           method: 'POST',
           body: new URLSearchParams({
-            file: `data:image/png;base64,${base64Image}`,
+            file: `data:image/jpeg;base64,${base64Image}`,
             upload_preset: 'unsigned_preset',
           }),
         });
