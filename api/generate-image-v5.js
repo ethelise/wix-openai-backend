@@ -50,7 +50,7 @@ module.exports = async function handler(req, res) {
           jobs[jobId] = { status: 'error', error: 'No image returned from OpenAI' };
           return;
         }
-
+        console.log("Uploading base64:", base64Image.slice(0, 30)); // just first part
         // Step 2: Upload to Cloudinary
         const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/djsc8h3ra/image/upload`, {
           method: 'POST',
