@@ -33,7 +33,8 @@ export default async function handler(req, res) {
             prompt: prompt,
             n: 1,
             size: '1024x1024',
-            output_format: 'jpeg'
+            output_format: 'jpeg',
+            quality: 'low'
           }),
         });
 
