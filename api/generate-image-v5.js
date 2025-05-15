@@ -32,7 +32,7 @@ module.exports = async function handler(req, res) {
             model: 'gpt-image-1',
             prompt: prompt,
             n: 1,
-            size: '512x512',
+            size: '1024x1024',
             output_format: 'jpeg', // corrected property name from output_format
             quality: 'low'
           }),
