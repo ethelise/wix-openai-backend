@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
           method: 'POST',
           body: new URLSearchParams({
             file: `data:image/png;base64,${base64Image}`,
-            upload_preset: 'unsigned_preset',
+            upload_preset: 'unsignedpreset',
           }),
         });
 
