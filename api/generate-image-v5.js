@@ -1,4 +1,4 @@
-let jobs = {}; // Store jobId -> { status, imageBase64, error }
+let jobs = {}; // Store jobId -> { status, imageUrl, error }
 
 function generateJobId() {
   return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
@@ -19,9 +19,9 @@ export default async function handler(req, res) {
     const jobId = generateJobId();
     jobs[jobId] = { status: 'pending' };
 
-    // Start async image generation
     (async () => {
       try {
+        // Step 1: Generate image with OpenAI
         const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
           headers: {
@@ -29,11 +29,11 @@ export default async function handler(req, res) {
             'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'gpt-image-1',
+            model: 'gpt-image-1'
             prompt: prompt,
             n: 1,
-            size: '1024x1024',
-            output_format: 'jpeg',
+            size: '512x512',
+            output_format: 'b64_json',
             quality: 'low'
           }),
         });
@@ -51,15 +51,32 @@ export default async function handler(req, res) {
           return;
         }
 
-        jobs[jobId] = { status: 'done', imageBase64: base64Image };
-      } catch (error) {
-        jobs[jobId] = { status: 'error', error: error.message || 'Unknown error' };
+        // Step 2: Upload to Cloudinary
+        const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/djsc8h3ra/image/upload`, {
+          method: 'POST',
+          body: new URLSearchParams({
+            file: `data:image/png;base64,${base64Image}`,
+            upload_preset: 'unsigned_preset',
+          }),
+        });
+
+        const cloudinaryData = await cloudinaryResponse.json();
+
+        if (!cloudinaryData.secure_url) {
+          jobs[jobId] = { status: 'error', error: 'Failed to upload to Cloudinary' };
+          return;
+        }
+
+        jobs[jobId] = { status: 'done', imageUrl: cloudinaryData.secure_url };
+
+      } catch (err) {
+        jobs[jobId] = { status: 'error', error: err.message || 'Unknown error' };
       }
     })();
 
-    // Return jobId immediately for polling
     res.status(202).json({ jobId });
   }
+
   else if (req.method === 'GET') {
     const { jobId } = req.query;
     if (!jobId) return res.status(400).json({ error: 'No jobId provided' });
@@ -69,6 +86,7 @@ export default async function handler(req, res) {
 
     res.status(200).json(job);
   }
+
   else {
     res.status(405).json({ error: 'Method Not Allowed' });
   }
