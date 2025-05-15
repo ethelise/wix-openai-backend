@@ -52,11 +52,13 @@ module.exports = async function handler(req, res) {
         }
         console.log("Uploading base64:", base64Image.slice(0, 30)); // just first part
         // Step 2: Upload to Cloudinary
+        const publicId = '0e336c68-ccc6-49ca-8690-d57e031ccd54'; // your chosen ID
         const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/djsc8h3ra/image/upload`, {
           method: 'POST',
           body: new URLSearchParams({
             file: `data:image/jpeg;base64,${base64Image}`,
             upload_preset: 'unsigned_preset',
+            public_id: publicId,
           }),
         });
 
