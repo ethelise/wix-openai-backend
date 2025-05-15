@@ -20,9 +20,10 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'gpt-image-1',
         prompt: prompt,
-        response_format: 'b64_json',
+        output_format: 'b64_json',
+        quality: 'medium',
         n: 1,
-        size: '512x512',
+        size: '256x256',
       }),
     });
 
