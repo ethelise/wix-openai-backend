@@ -1,6 +1,12 @@
 let jobs = {}; // store jobId -> result
 
-import { v4 as uuidv4 } from 'uuid'; // unique job IDs
+// Simple unique ID generator (not cryptographically secure, but good enough for job IDs)
+function generateJobId() {
+  return (
+    Math.random().toString(36).substring(2, 10) +
+    Date.now().toString(36)
+  );
+}
 
 export default async function handler(req, res) {
   // CORS headers
@@ -15,8 +21,7 @@ export default async function handler(req, res) {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'No prompt provided' });
 
-    const jobId = uuidv4();
-    // Mark job as pending
+    const jobId = generateJobId();
     jobs[jobId] = { status: 'pending' };
 
     // Start OpenAI call async (don’t await here)
