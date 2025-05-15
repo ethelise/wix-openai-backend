@@ -34,7 +34,7 @@ module.exports = async function handler(req, res) {
             n: 1,
             size: '1024x1024',
             output_format: 'jpeg', // corrected property name from output_format
-            quality: 'high'
+            quality: 'low'
           }),
         });
 
