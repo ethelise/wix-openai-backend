@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
             prompt: prompt,
             n: 1,
             size: '1024x1024',
-            output_format: 'jpeg', // corrected property name from output_format
+            output_format: 'png', // corrected property name from output_format
             quality: 'high'
           }),
         });
@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
         const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/djsc8h3ra/image/upload`, {
           method: 'POST',
           body: new URLSearchParams({
-            file: `data:image/jpeg;base64,${base64Image}`,
+            file: `data:image/png;base64,${base64Image}`,
             upload_preset: 'unsigned_preset',
             public_id: publicId,
           }),
