@@ -1,11 +1,7 @@
-let jobs = {}; // store jobId -> result
+let jobs = {}; // Store jobId -> { status, imageBase64, error }
 
-// Simple unique ID generator (not cryptographically secure, but good enough for job IDs)
 function generateJobId() {
-  return (
-    Math.random().toString(36).substring(2, 10) +
-    Date.now().toString(36)
-  );
+  return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
 }
 
 export default async function handler(req, res) {
@@ -17,25 +13,27 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.method === 'POST') {
-    // Start job
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'No prompt provided' });
 
     const jobId = generateJobId();
     jobs[jobId] = { status: 'pending' };
 
-    // Start OpenAI call async (don’t await here)
+    // Start async image generation
     (async () => {
       try {
-        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: prompt }],
+            model: 'gpt-image-1',
+            prompt: prompt,
+            n: 1,
+            size: '256x256',
+            response_format: 'jpeg'
           }),
         });
 
@@ -45,19 +43,23 @@ export default async function handler(req, res) {
         }
 
         const data = await openaiResponse.json();
-        const reply = data.choices?.[0]?.message?.content || 'No reply';
+        const base64Image = data.data?.[0]?.b64_json;
 
-        jobs[jobId] = { status: 'done', reply };
-      } catch (err) {
-        jobs[jobId] = { status: 'error', error: err.message };
+        if (!base64Image) {
+          jobs[jobId] = { status: 'error', error: 'No image returned from OpenAI' };
+          return;
+        }
+
+        jobs[jobId] = { status: 'done', imageBase64: base64Image };
+      } catch (error) {
+        jobs[jobId] = { status: 'error', error: error.message || 'Unknown error' };
       }
     })();
 
-    // Immediately respond with jobId
+    // Return jobId immediately for polling
     res.status(202).json({ jobId });
   }
   else if (req.method === 'GET') {
-    // Check job status: expect jobId as query param
     const { jobId } = req.query;
     if (!jobId) return res.status(400).json({ error: 'No jobId provided' });
 
