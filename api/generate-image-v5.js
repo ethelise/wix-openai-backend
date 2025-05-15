@@ -61,6 +61,7 @@ module.exports = async function handler(req, res) {
         });
 
         const cloudinaryData = await cloudinaryResponse.json();
+        console.log('Cloudinary response:', cloudinaryData);
 
         if (!cloudinaryData.secure_url) {
           jobs[jobId] = { status: 'error', error: 'Failed to upload to Cloudinary' };
